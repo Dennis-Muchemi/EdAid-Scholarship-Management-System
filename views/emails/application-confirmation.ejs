@@ -1,0 +1,30 @@
+<!-- Email template for application confirmation -->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #f8f9fa; padding: 20px; text-align: center; }
+        .content { padding: 20px; }
+        .footer { text-align: center; padding: 20px; color: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Application Submitted Successfully</h1>
+        </div>
+        <div class="content">
+            <p>Dear Applicant,</p>
+            <p>Your application for <%= scholarshipTitle %> has been successfully submitted.</p>
+            <p>Application ID: <%= applicationId %></p>
+            <p>We will review your application and notify you of any updates.</p>
+        </div>
+        <div class="footer">
+            <p>© <%= new Date().getFullYear() %> EdAid. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -8,6 +8,8 @@ const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 const dotenv = require('dotenv');
+const { apiLimiter, securityHeaders } = require('./middleware/security');
+const { handleValidationErrors } = require('./middleware/validation');
 
 // Load environment variables
 dotenv.config();
@@ -42,6 +44,15 @@ app.use(session({
     }
 }));
 
+// Apply security headers
+app.use(securityHeaders);
+
+// Apply API rate limiting to all routes
+app.use('/api/', apiLimiter);
+
+// Apply validation error handler
+app.use(handleValidationErrors);
+
 // View Engine Setup
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -63,19 +74,30 @@ const authRoutes = require('./routes/auth');
 const scholarshipRoutes = require('./routes/scholarships');
 const applicationRoutes = require('./routes/applications');
 const adminRoutes = require('./routes/admin');
+const userRoutes = require('./routes/users');
 
 // Route Middleware
 app.use('/auth', authRoutes);
 app.use('/scholarships', scholarshipRoutes);
-app.use('/applications', applicationRoutes);
+app.use('/api/applications', applicationRoutes);
 app.use('/admin', adminRoutes);
+app.use('/api/users', userRoutes);
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {
     console.error(err.stack);
-    res.status(500).render('error', {
-        message: 'Something went wrong!',
-        error: process.env.NODE_ENV === 'development' ? err : {}
+    res.status(500).json({
+        success: false,
+        message: 'Internal Server Error',
+        error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+});
+
+// 404 handler
+app.use((req, res) => {
+    res.status(404).json({
+        success: false,
+        message: 'Route not found'
     });
 });
 

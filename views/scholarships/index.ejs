@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EdAid - Available Scholarships</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        /* Custom styling for scholarship cards */
+        .scholarship-card {
+            transition: transform 0.2s;
+            height: 100%;
+        }
+        .scholarship-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        /* Custom badge colors */
+        .badge-amount {
+            background-color: #28a745;
+        }
+        /* Loading animation */
+        .loading-spinner {
+            display: none;
+        }
+        .loading .loading-spinner {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <%- include('../partials/navbar') %>
+
+    <div class="container my-5">
+        <!-- Page Header -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <h1>Available Scholarships</h1>
+                <p class="text-muted">Discover and apply for scholarships that match your profile</p>
+            </div>
+        </div>
+
+        <!-- Search and Filter Section -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="input-group">
+                    <input type="text" class="form-control" id="searchScholarship" 
+                           placeholder="Search scholarships...">
+                    <button class="btn btn-primary" type="button">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <select class="form-select" id="filterCategory">
+                    <option value="">All Categories</option>
+                    <% categories.forEach(category => { %>
+                        <option value="<%= category._id %>"><%= category.name %></option>
+                    <% }); %>
+                </select>
+            </div>
+        </div>
+
+        <!-- Sorting Options -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-outline-secondary" data-sort="deadline">
+                        Sort by Deadline <i class="fas fa-sort"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" data-sort="amount">
+                        Sort by Amount <i class="fas fa-sort"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scholarship Cards Grid -->
+        <div class="row g-4" id="scholarshipsContainer">
+            <% scholarships.forEach(scholarship => { %>
+                <div class="col-md-6 col-lg-4">
+                    <div class="card scholarship-card">
+                        <div class="card-body">
+                            <h5 class="card-title"><%= scholarship.title %></h5>
+                            <p class="card-text text-muted">
+                                <%= scholarship.description.substring(0, 100) %>...
+                            </p>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="badge badge-amount">
+                                    $<%= scholarship.amount.toLocaleString() %>
+                                </span>
+                                <span class="badge bg-info">
+                                    <i class="far fa-clock"></i>
+                                    <%= new Date(scholarship.deadline).toLocaleDateString() %>
+                                </span>
+                            </div>
+                            <a href="/scholarships/<%= scholarship._id %>" 
+                               class="btn btn-primary btn-sm w-100">View Details</a>
+                        </div>
+                    </div>
+                </div>
+            <% }); %>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div class="loading-spinner text-center my-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <% if (totalPages > 1) { %>
+            <nav aria-label="Scholarship pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item <%= currentPage === 1 ? 'disabled' : '' %>">
+                        <a class="page-link" href="?page=<%= currentPage-1 %>">Previous</a>
+                    </li>
+                    <% for(let i = 1; i <= totalPages; i++) { %>
+                        <li class="page-item <%= currentPage === i ? 'active' : '' %>">
+                            <a class="page-link" href="?page=<%= i %>"><%= i %></a>
+                        </li>
+                    <% } %>
+                    <li class="page-item <%= currentPage === totalPages ? 'disabled' : '' %>">
+                        <a class="page-link" href="?page=<%= currentPage+1 %>">Next</a>
+                    </li>
+                </ul>
+            </nav>
+        <% } %>
+    </div>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript for search and filter functionality -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Search functionality
+            const searchInput = document.getElementById('searchScholarship');
+            const filterSelect = document.getElementById('filterCategory');
+            
+            function performSearch() {
+                const searchTerm = searchInput.value;
+                const category = filterSelect.value;
+                
+                // Show loading spinner
+                document.getElementById('scholarshipsContainer').classList.add('loading');
+                
+                // Make API call to search scholarships
+                fetch(`/api/scholarships/search?q=${searchTerm}&category=${category}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        // Update scholarships display
+                        updateScholarshipDisplay(data);
+                    })
+                    .finally(() => {
+                        // Hide loading spinner
+                        document.getElementById('scholarshipsContainer')
+                            .classList.remove('loading');
+                    });
+            }
+
+            // Add event listeners
+            searchInput.addEventListener('input', performSearch);
+            filterSelect.addEventListener('change', performSearch);
+        });
+    </script>
+</body>
+</html>

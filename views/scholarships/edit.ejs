@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EdAid - Edit Scholarship</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+        .dynamic-field-list {
+            list-style: none;
+            padding: 0;
+        }
+        .dynamic-field-item {
+            margin-bottom: 10px;
+        }
+        #editor {
+            height: 200px;
+        }
+        .application-history {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .version-history {
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <%- include('../partials/navbar') %>
+
+    <div class="container my-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <!-- Alert Messages -->
+                <% if (locals.success) { %>
+                    <div class="alert alert-success"><%= success %></div>
+                <% } %>
+                <% if (locals.error) { %>
+                    <div class="alert alert-danger"><%= error %></div>
+                <% } %>
+
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2>Edit Scholarship</h2>
+                            <button class="btn btn-danger" onclick="confirmDelete()">
+                                <i class="fas fa-trash"></i> Delete Scholarship
+                            </button>
+                        </div>
+
+                        <!-- Version History -->
+                        <div class="version-history mb-3">
+                            Last updated: <%= scholarship.updatedAt.toLocaleString() %>
+                            by <%= scholarship.lastEditedBy %>
+                        </div>
+
+                        <form id="scholarshipForm" action="/scholarships/<%= scholarship._id %>?_method=PUT" method="POST" enctype="multipart/form-data">
+                            <!-- Basic Information -->
+                            <div class="mb-4">
+                                <h4>Basic Information</h4>
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <label for="title" class="form-label">Scholarship Title *</label>
+                                        <input type="text" class="form-control" id="title" name="title" 
+                                               value="<%= scholarship.title %>" required>
+                                    </div>
+                                    
+                                    <div class="col-md-12 mb-3">
+                                        <label class="form-label">Description *</label>
+                                        <div id="editor"><%- scholarship.description %></div>
+                                        <input type="hidden" name="description" id="description">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Funding Details -->
+                            <div class="mb-4">
+                                <h4>Funding Details</h4>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="amount" class="form-label">Amount ($) *</label>
+                                        <input type="number" class="form-control" id="amount" name="amount" 
+                                               value="<%= scholarship.amount %>" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="numberOfAwards" class="form-label">Number of Awards</label>
+                                        <input type="number" class="form-control" id="numberOfAwards" 
+                                               name="numberOfAwards" value="<%= scholarship.numberOfAwards %>">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Eligibility Criteria -->
+                            <div class="mb-4">
+                                <h4>Eligibility Criteria</h4>
+                                <ul id="eligibilityList" class="dynamic-field-list">
+                                    <% scholarship.eligibility.forEach(criterion => { %>
+                                        <li class="dynamic-field-item">
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" name="eligibility[]" 
+                                                       value="<%= criterion %>">
+                                                <button type="button" class="btn btn-outline-danger remove-field">
+                                                    <i class="fas fa-minus"></i>
+                                                </button>
+                                            </div>
+                                        </li>
+                                    <% }); %>
+                                    <button type="button" class="btn btn-outline-secondary add-field">
+                                        <i class="fas fa-plus"></i> Add Criterion
+                                    </button>
+                                </ul>
+                            </div>
+
+                            <!-- Required Documents -->
+                            <div class="mb-4">
+                                <h4>Required Documents</h4>
+                                <ul id="documentsList" class="dynamic-field-list">
+                                    <% scholarship.requiredDocuments.forEach(doc => { %>
+                                        <li class="dynamic-field-item">
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" name="requiredDocuments[]" 
+                                                       value="<%= doc %>">
+                                                <button type="button" class="btn btn-outline-danger remove-field">
+                                                    <i class="fas fa-minus"></i>
+                                                </button>
+                                            </div>
+                                        </li>
+                                    <% }); %>
+                                    <button type="button" class="btn btn-outline-secondary add-field">
+                                        <i class="fas fa-plus"></i> Add Document
+                                    </button>
+                                </ul>
+                            </div>
+
+                            <!-- Deadline & Contact -->
+                            <div class="mb-4">
+                                <h4>Deadline & Contact Information</h4>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="deadline" class="form-label">Application Deadline *</label>
+                                        <input type="text" class="form-control" id="deadline" name="deadline" 
+                                               value="<%= scholarship.deadline.toISOString().split('T')[0] %>" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="contactEmail" class="form-label">Contact Email *</label>
+                                        <input type="email" class="form-control" id="contactEmail" 
+                                               name="contactEmail" value="<%= scholarship.contactEmail %>" required>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <div class="text-end">
+                                <a href="/scholarships/<%= scholarship._id %>" class="btn btn-outline-secondary me-2">
+                                    Cancel
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    Save Changes
+                                </button>
+                            </div>
+                        </form>
+
+                        <!-- Application History -->
+                        <div class="mt-5">
+                            <h4>Application History</h4>
+                            <div class="application-history">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Applicant</th>
+                                            <th>Date</th>
+                                            <th>Status</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% applications.forEach(app => { %>
+                                            <tr>
+                                                <td><%= app.user.name %></td>
+                                                <td><%= app.createdAt.toLocaleDateString() %></td>
+                                                <td><span class="badge bg-<%= app.status === 'pending' ? 'warning' : 
+                                                    app.status === 'approved' ? 'success' : 'danger' %>">
+                                                    <%= app.status %>
+                                                </span></td>
+                                                <td>
+                                                    <a href="/applications/<%= app._id %>" 
+                                                       class="btn btn-sm btn-outline-primary">
+                                                        View
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        <% }); %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script>
+        // Initialize Rich Text Editor
+        const quill = new Quill('#editor', {
+            theme: 'snow',
+            placeholder: 'Enter scholarship description...'
+        });
+
+        // Initialize Date Picker
+        flatpickr("#deadline", {
+            enableTime: true,
+            dateFormat: "Y-m-d H:i",
+            minDate: "today",
+            defaultDate: "<%= scholarship.deadline %>"
+        });
+
+        // Dynamic Fields Handler
+        function initializeDynamicFields() {
+            document.querySelectorAll('.add-field').forEach(button => {
+                button.onclick = function() {
+                    const list = this.closest('ul');
+                    const newItem = document.createElement('li');
+                    newItem.className = 'dynamic-field-item';
+                    newItem.innerHTML = `
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="${list.id === 'eligibilityList' ? 
+                                'eligibility[]' : 'requiredDocuments[]'}">
+                            <button type="button" class="btn btn-outline-danger remove-field">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                        </div>
+                    `;
+                        list.insertBefore(newItem, this.parentElement);
+                    };
+            });
+
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.remove-field')) {
+                    e.target.closest('.dynamic-field-item').remove();
+                }
+            });
+        }
+
+        // Form Submit Handler
+        document.getElementById('scholarshipForm').onsubmit = function() {
+            document.getElementById('description').value = quill.root.innerHTML;
+            return true;
+        };
+
+        // Delete Confirmation
+        function confirmDelete() {
+            if (confirm('Are you sure you want to delete this scholarship? This action cannot be undone.')) {
+                fetch('/scholarships/<%= scholarship._id %>', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                }).then(response => {
+                    if (response.ok) {
+                        window.location.href = '/scholarships';
+                    }
+                });
+            }
+        }
+
+        // Initialize Dynamic Fields
+        initializeDynamicFields();
+
+        // Check for unsaved changes
+        let formChanged = false;
+        document.getElementById('scholarshipForm').addEventListener('input', () => {
+            formChanged = true;
+        });
+
+        window.onbeforeunload = function() {
+            if (formChanged) {
+                return 'You have unsaved changes. Are you sure you want to leave?';
+            }
+        };
+    </script>
+</body>
+</html>

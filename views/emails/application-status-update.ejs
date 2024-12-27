@@ -1,0 +1,37 @@
+<!-- Email template for application status update -->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #f8f9fa; padding: 20px; text-align: center; }
+        .content { padding: 20px; }
+        .footer { text-align: center; padding: 20px; color: #6c757d; }
+        .status { font-weight: bold; color: #007bff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Application Status Update</h1>
+        </div>
+        <div class="content">
+            <p>Dear Applicant,</p>
+            <p>Your application for <%= scholarshipTitle %> has been updated.</p>
+            <p>Current Status: <span class="status"><%= status %></span></p>
+            <% if (status === 'accepted') { %>
+                <p>Congratulations! Your application has been accepted. We will contact you soon with further instructions.</p>
+            <% } else if (status === 'rejected') { %>
+                <p>We regret to inform you that your application was not selected at this time. We encourage you to apply for future opportunities.</p>
+            <% } else { %>
+                <p>Your application is being processed. We will notify you of any further updates.</p>
+            <% } %>
+        </div>
+        <div class="footer">
+            <p>© <%= new Date().getFullYear() %> EdAid. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>
