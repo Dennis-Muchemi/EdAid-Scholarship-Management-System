@@ -102,3 +102,38 @@ exports.reviewApplication = async (req, res) => {
         res.status(400).json({ error: error.message });
     }
 };
+
+exports.getMyApplications = async (req, res) => {
+    try {
+        const applications = await Application.find({ user: req.user.userId })
+            .populate({
+                path: 'scholarship',
+                select: 'title amount deadline status'
+            })
+            .populate({
+                path: 'reviewedBy',
+                select: 'name email'
+            })
+            .sort({ createdAt: -1 });
+
+        if (!applications) {
+            return res.status(404).json({ 
+                success: false,
+                message: 'No applications found'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            count: applications.length,
+            data: applications
+        });
+        
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error retrieving applications',
+            error: error.message
+        });
+    }
+};

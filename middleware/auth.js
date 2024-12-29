@@ -28,28 +28,32 @@ const jwtAuth = (token) => {
     }
 };
 
-// Combined Authentication Middleware
+// Main authentication middleware
 const authenticateUser = async (req, res, next) => {
     try {
-        const token = req.cookies.token || req.headers.authorization?.split('Bearer ')[1];
-        
+        const token = req.header('Authorization')?.replace('Bearer ', '') || 
+                     req.cookies?.token;
+
         if (!token) {
-            return res.status(401).json({ error: 'Authentication required' });
+            return res.status(401).json({ error: 'No authentication token provided' });
         }
 
-        // Try both authentication methods
+        // Try both auth methods
         const firebaseResult = await firebaseAuth(token);
         const jwtResult = jwtAuth(token);
 
         if (!firebaseResult && !jwtResult) {
-            return res.status(401).json({ error: 'Invalid authentication token' });
+            return res.status(401).json({ error: 'Invalid token' });
         }
 
         // Prefer Firebase auth if both succeed
         const authResult = firebaseResult || jwtResult;
+        
+        // Set user info on request object
         req.user = {
-            ...authResult.user,
             userId: authResult.user.uid || authResult.user.id,
+            email: authResult.user.email,
+            role: authResult.user.role,
             authType: authResult.type
         };
 
@@ -60,13 +64,36 @@ const authenticateUser = async (req, res, next) => {
     }
 };
 
+// Role-based access control middleware
 const checkRole = (roles) => {
     return (req, res, next) => {
-        if (!req.user || !roles.includes(req.user.role)) {
-            return res.status(403).json({ error: 'Insufficient permissions' });
+        try {
+            if (!req.user) {
+                return res.status(401).json({ 
+                    error: 'Authentication required'
+                });
+            }
+
+            if (!roles.includes(req.user.role)) {
+                return res.status(403).json({ 
+                    error: 'Access denied',
+                    details: 'Insufficient permissions'
+                });
+            }
+
+            next();
+        } catch (error) {
+            console.error('Role Check Error:', error);
+            res.status(500).json({ 
+                error: 'Role verification failed'
+            });
         }
-        next();
     };
 };
 
-module.exports = { authenticateUser, checkRole };
+// Export as default middleware
+// Export both middlewares
+module.exports = {
+    authenticateUser,
+    checkRole
+};

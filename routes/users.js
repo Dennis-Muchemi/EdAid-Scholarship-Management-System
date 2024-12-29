@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { check, validationResult } = require('express-validator');
-const auth = require('../middleware/auth');
 const User = require('../models/user');
 const multer = require('multer');
 const path = require('path');
+const { authenticateUser } = require('../middleware/auth');
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -30,23 +30,34 @@ const upload = multer({
 // @route   GET /api/users/profile
 // @desc    Get current user's profile
 // @access  Private
-router.get('/profile', auth, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.userId)
-      .select('-password')
-      .populate('applications')
-      .populate('savedScholarships');
-    res.json(user);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Server Error');
-  }
+router.get('/profile', authenticateUser, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.userId)
+            .select('-password')
+            .populate('applications')
+            .populate('savedScholarships');
+
+        if (!user) {
+            return res.status(404).json({ 
+                error: 'User not found',
+                details: `No user found with ID: ${req.user.userId}`
+            });
+        }
+
+        res.json(user);
+    } catch (err) {
+        console.error('Profile Error:', err);
+        res.status(500).json({ 
+            error: 'Server Error',
+            details: err.message 
+        });
+    }
 });
 
 // @route   PUT /api/users/profile
 // @desc    Update user profile
 // @access  Private
-router.put('/profile', [auth, [
+router.put('/profile', [authenticateUser, [
   check('firstName', 'First name is required').notEmpty(),
   check('lastName', 'Last name is required').notEmpty(),
   check('phone', 'Phone number is required').optional()
@@ -81,7 +92,7 @@ router.put('/profile', [auth, [
 // @route   POST /api/users/documents
 // @desc    Upload user documents
 // @access  Private
-router.post('/documents', [auth, upload.single('document')], async (req, res) => {
+router.post('/documents', [authenticateUser, upload.single('document')], async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ msg: 'No file uploaded' });
@@ -105,7 +116,7 @@ router.post('/documents', [auth, upload.single('document')], async (req, res) =>
 // @route   GET /api/users/applications
 // @desc    Get user's applications
 // @access  Private
-router.get('/applications', auth, async (req, res) => {
+router.get('/applications', authenticateUser, async (req, res) => {
   try {
     const applications = await Application.find({ user: req.user.userId })
       .populate('scholarship')
@@ -120,7 +131,7 @@ router.get('/applications', auth, async (req, res) => {
 // @route   POST /api/users/save-scholarship/:id
 // @desc    Save/unsave a scholarship
 // @access  Private
-router.post('/save-scholarship/:id', auth, async (req, res) => {
+router.post('/save-scholarship/:id', authenticateUser, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId);
     const scholarshipId = req.params.id;
@@ -143,7 +154,7 @@ router.post('/save-scholarship/:id', auth, async (req, res) => {
 // @route   PUT /api/users/preferences
 // @desc    Update user notification preferences
 // @access  Private
-router.put('/preferences', auth, async (req, res) => {
+router.put('/preferences', authenticateUser, async (req, res) => {
   try {
     const user = await User.findByIdAndUpdate(
       req.user.userId,

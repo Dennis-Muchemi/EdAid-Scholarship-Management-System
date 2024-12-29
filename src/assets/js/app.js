@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Load header and footer
-    loadComponent('header-placeholder', '../components/header.html');
-    loadComponent('footer-placeholder', '../components/footer.html');
+    loadComponent('header-placeholder', '/assets/components/header.html');
+    loadComponent('footer-placeholder', '/assets/components/footer.html');
 
     // Initialize animations
     initScrollAnimation();

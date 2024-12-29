@@ -67,7 +67,14 @@ mongoose.connect(process.env.MONGODB_URI, {
     useUnifiedTopology: true
 })
 .then(() => console.log('MongoDB Connected'))
-.catch(err => console.error('MongoDB Connection Error:', err));
+.catch(err => {
+    console.error('MongoDB Connection Error:', err);
+    console.error('Connection String:', process.env.MONGODB_URI);
+});
+
+// Serve static files from the src directory
+app.use(express.static(path.join(__dirname, 'src')));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Import Routes
 const authRoutes = require('./routes/auth');
@@ -82,6 +89,11 @@ app.use('/scholarships', scholarshipRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/admin', adminRoutes);
 app.use('/api/users', userRoutes);
+
+// Root URL Handler
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'src/assets/pages/index.html'));
+});
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {

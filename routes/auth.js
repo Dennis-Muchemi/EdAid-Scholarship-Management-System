@@ -4,7 +4,6 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { check, validationResult } = require('express-validator');
 const User = require('../models/user');
-const auth = require('../middleware/auth');
 const sendEmail = require('../utils/email');
 const admin = require('firebase-admin');
 const { authenticateUser, checkRole } = require('../middleware/auth');
@@ -234,12 +233,38 @@ router.get('/verify/:token', async (req, res) => {
 // @access  Private
 router.get('/user', authenticateUser, async (req, res) => {
     try {
-        // req.user.authType will tell you which authentication was used
-        const user = await User.findById(req.user.userId).select('-password');
-        res.json(user);
+        // Verify user exists in request
+        if (!req.user || !req.user.userId) {
+            return res.status(401).json({ 
+                error: 'Authentication failed',
+                details: 'User ID not found in request'
+            });
+        }
+
+        const user = await User.findById(req.user.userId)
+            .select('-password')
+            .populate('applications')
+            .populate('savedScholarships');
+
+        if (!user) {
+            return res.status(404).json({ 
+                error: 'User not found',
+                details: 'User does not exist in database'
+            });
+        }
+
+        res.json({
+            success: true,
+            data: user,
+            authType: req.user.authType
+        });
+
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server error');
+        console.error('Auth Error:', err.message);
+        res.status(500).json({ 
+            error: 'Server error',
+            details: err.message
+        });
     }
 });
 
