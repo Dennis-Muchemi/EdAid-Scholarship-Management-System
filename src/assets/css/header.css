@@ -52,6 +52,14 @@
     align-items: center;
 }
 
+.auth-buttons .btn {
+    display: inline-block;
+    padding: 8px 16px;
+    text-decoration: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
 .login-btn, 
 .signup-btn {
     padding: 0.5rem 1.5rem;

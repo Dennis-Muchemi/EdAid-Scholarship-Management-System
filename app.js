@@ -74,7 +74,6 @@ mongoose.connect(process.env.MONGODB_URI, {
 
 // Serve static files from the src directory
 app.use(express.static(path.join(__dirname, 'src')));
-app.use(express.static(path.join(__dirname, 'public')));
 
 // Import Routes
 const authRoutes = require('./routes/auth');

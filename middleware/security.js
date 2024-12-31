@@ -21,11 +21,11 @@ const securityHeaders = [
     helmet(),
     helmet.contentSecurityPolicy({
         directives: {
-            defaultSrc: ["'self'"],
-            styleSrc: ["'self'", "'unsafe-inline'"],
-            scriptSrc: ["'self'", "'unsafe-inline'"],
-            imgSrc: ["'self'", "data:", "https:"],
-            connectSrc: ["'self'"]
+            defaultSrc: ["*"],
+            styleSrc: ["*", "'unsafe-inline'"],
+            scriptSrc: ["*", "'unsafe-inline'"],
+            imgSrc: ["*", "data:", "https:"],
+            connectSrc: ["*"]
         }
     })
 ];

@@ -3,13 +3,12 @@ const nodemailer = require('nodemailer');
 const ejs = require('ejs');
 const path = require('path');
 
+//Create transporter
 const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
-    secure: process.env.SMTP_PORT === '465',
+    service: 'gmail',
     auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD
     }
 });
 
@@ -34,11 +33,12 @@ const sendEmail = async ({ to, template, data, subject }) => {
         const html = await ejs.renderFile(templatePath, data);
 
         await transporter.sendMail({
-            from: process.env.FROM_EMAIL,
+            from: process.env.EMAIL_USER,
             to,
             subject: subject || emailTemplates[template].subject,
             html
         });
+        console.log("Email sent successfully");
     } catch (error) {
         console.error('Email sending failed:', error);
         throw error;
