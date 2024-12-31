@@ -1,6 +1,4 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 import {
@@ -10,6 +8,8 @@ import {
 } from '@mui/material';
 import { Google as GoogleIcon } from '@mui/icons-material';
 import { LoadingSpinner } from '../common';
+import React, { useContext } from 'react';
+import { useAuth } from '../../context/AuthContext';
 
 const validationSchema = Yup.object().shape({
     email: Yup.string()

@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect } from 'react';
+import { createContext, useState, useEffect, useContext } from 'react';
 import { 
     onAuthStateChanged, 
     signInWithEmailAndPassword,
@@ -48,7 +48,11 @@ export const AuthProvider = ({ children }) => {
 
     const sendEmailVerification = async () => {
         if (auth.currentUser) {
-            await firebaseSendEmailVerification(auth.currentUser);
+            const actionCodeSettings = {
+                url: `${window.location.origin}/verify-email`,
+                handleCodeInApp: true
+            };
+            await firebaseSendEmailVerification(auth.currentUser, actionCodeSettings);
         }
     };
 
@@ -64,4 +68,12 @@ export const AuthProvider = ({ children }) => {
             {children}
         </AuthContext.Provider>
     );
+};
+
+export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (!context) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
 };

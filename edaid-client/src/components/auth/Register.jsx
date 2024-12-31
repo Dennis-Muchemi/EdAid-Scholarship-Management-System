@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { AuthProvider } from '../../context/AuthContext';
 import {
     Container,
     Paper,
@@ -24,7 +24,7 @@ const Register = () => {
     });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const { register } = useAuth();
+    const { register } = AuthProvider();
     const navigate = useNavigate();
 
     const handleChange = (e) => {

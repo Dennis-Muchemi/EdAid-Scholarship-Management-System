@@ -164,30 +164,39 @@ router.post('/login', verifyFirebaseToken, async (req, res) => {
 // Email verification endpoint
 router.get('/verify-email', async (req, res) => {
     try {
-        const { token } = req.query;
+        const { oobCode } = req.query;  // Changed from token to oobCode
         
-        // Verify Firebase token
-        const user = await admin.auth().getUser(token);
-        
-        if (user.emailVerified) {
-            return res.redirect('/auth/login?message=Email already verified');
+        if (!oobCode) {
+            throw new Error('No verification code provided');
         }
 
-        // Update email verified status in Firebase
-        await admin.auth().updateUser(token, {
-            emailVerified: true
-        });
+        // Verify the action code
+        const checkActionCode = await admin.auth().checkActionCode(oobCode);
+        
+        if (!checkActionCode) {
+            throw new Error('Invalid action code');
+        }
+
+        // Apply the verification code
+        await admin.auth().applyActionCode(oobCode);
+        
+        // Get the user after verification
+        const user = await admin.auth().getUser(checkActionCode.data.email);
 
         // Update MongoDB user
         await User.findOneAndUpdate(
-            { firebaseUid: token },
+            { firebaseUid: user.uid },
             { isVerified: true }
         );
 
         res.redirect('/auth/login?message=Email verification successful');
     } catch (error) {
         console.error('Verification error:', error);
-        res.redirect('/auth/login?message=Verification failed');
+        if (error.code === 'auth/invalid-action-code') {
+            res.redirect('/auth/login?message=Verification link expired or invalid');
+        } else {
+            res.redirect('/auth/login?message=Verification failed');
+        }
     }
 });
 

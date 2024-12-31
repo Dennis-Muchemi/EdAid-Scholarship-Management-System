@@ -4,6 +4,7 @@ import { ThemeProvider } from '@mui/material';
 import { AuthProvider } from './context/AuthContext';
 import App from './app';
 import './index.css';
+import { createTheme } from '@mui/material/styles';
 
 const theme = createTheme();
 

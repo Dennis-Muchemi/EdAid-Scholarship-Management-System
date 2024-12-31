@@ -5,3 +5,5 @@ export const LoadingSpinner = () => (
         <CircularProgress />
     </Box>
 );
+
+export default LoadingSpinner;

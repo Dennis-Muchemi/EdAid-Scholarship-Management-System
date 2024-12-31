@@ -9,3 +9,5 @@ const LogoutModal = ({ open, onClose, onConfirm }) => (
         </DialogActions>
     </Dialog>
 );
+
+export default LogoutModal;

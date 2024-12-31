@@ -31,3 +31,5 @@ const UserProfile = () => {
         </Paper>
     );
 };
+
+export default UserProfile;

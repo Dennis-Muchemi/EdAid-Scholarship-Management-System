@@ -17,12 +17,12 @@ import {
     Settings,
     Description
 } from '@mui/icons-material';
-import { useAuth } from '../../context/AuthContext';
+import { AuthProvider } from '../../context/AuthContext';
 
 const Sidebar = ({ open }) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { user } = useAuth();
+    const { user } = AuthProvider();
     
     const drawerWidth = 240;
 
