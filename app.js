@@ -10,12 +10,19 @@ const path = require('path');
 const dotenv = require('dotenv');
 const { apiLimiter, securityHeaders } = require('./middleware/security');
 const { handleValidationErrors } = require('./middleware/validation');
+const cors = require('cors');
 
 // Load environment variables
 dotenv.config();
 
 // Initialize Express application
 const app = express();
+
+// CORS configuration
+app.use(cors({
+  origin: 'http://localhost:3000',
+  credentials: true
+}));
 
 // Rate limiting
 const limiter = rateLimit({

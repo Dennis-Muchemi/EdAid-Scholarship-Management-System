@@ -41,10 +41,19 @@ router.get('/forgot-password', (req, res) => {
 // Register endpoint
 router.post('/register', verifyFirebaseToken, async (req, res) => {
     try {
-        const { firstName, lastName, email, role } = req.body;
-        const { uid } = req.user;
+        const { uid, email } = req.user; // From Firebase token
+        const { firstName, lastName, role } = req.body;
 
-        // Create user in MongoDB
+        // Check if user already exists in MongoDB
+        let existingUser = await User.findOne({ firebaseUid: uid });
+        if (existingUser) {
+            return res.status(409).json({ 
+                error: 'User already exists',
+                message: 'An account with this email already exists'
+            });
+        }
+
+        // Create new user in MongoDB
         const user = new User({
             firebaseUid: uid,
             email,
@@ -52,37 +61,63 @@ router.post('/register', verifyFirebaseToken, async (req, res) => {
                 firstName,
                 lastName
             },
-            role: role || 'student'
+            role: role || 'student', // Default to student if no role specified
+            isVerified: false // Will be updated when email is verified
         });
 
         await user.save();
 
         // Send welcome email
-        await sendEmail({
-            to: email,
-            template: 'welcome',
-            data: {
-                name: firstName,
-                verificationLink: `${process.env.CLIENT_URL}/auth/verify-email?token=${uid}`
+        try {
+            await sendEmail({
+                to: email,
+                template: 'welcome',
+                data: {
+                    name: firstName,
+                    verificationLink: `${process.env.CLIENT_URL}/verify-email?token=${uid}`
+                }
+            });
+        } catch (emailError) {
+            console.error('Failed to send welcome email:', emailError);
+            // Don't fail registration if email fails
+        }
+
+        res.status(201).json({
+            success: true,
+            message: 'Registration successful. Please verify your email.',
+            user: {
+                id: user._id,
+                email: user.email,
+                role: user.role
             }
         });
 
-        res.status(201).json({ message: 'Registration successful' });
     } catch (error) {
         console.error('Registration error:', error);
-        res.status(500).json({ error: 'Registration failed' });
+        res.status(500).json({ 
+            error: 'Registration failed', 
+            message: error.message 
+        });
     }
 });
 
 // Login endpoint
 router.post('/login', verifyFirebaseToken, async (req, res) => {
     try {
-        const { uid } = req.user;
+        const { uid } = req.user; // This comes from Firebase token verification
         
-        // Get user from MongoDB
+        // Find user in MongoDB
         const user = await User.findOne({ firebaseUid: uid });
         if (!user) {
-            return res.status(404).json({ error: 'User not found' });
+            return res.status(404).json({ error: 'User not found in database' });
+        }
+
+        // Check email verification
+        if (!user.isVerified) {
+            return res.status(403).json({ 
+                error: 'Email not verified',
+                message: 'Please verify your email before logging in'
+            });
         }
 
         // Set session data
@@ -92,23 +127,37 @@ router.post('/login', verifyFirebaseToken, async (req, res) => {
             email: user.email
         };
 
-        // Determine redirect URL based on role
+        // Determine redirect URL based on user role
         let redirectUrl;
         switch (user.role) {
             case 'admin':
                 redirectUrl = '/admin/dashboard';
                 break;
             case 'reviewer':
-                redirectUrl = '/dashboard/reviewer';
+                redirectUrl = '/reviewer/dashboard';
                 break;
             default:
-                redirectUrl = '/dashboard/student';
+                redirectUrl = '/student/dashboard';
         }
 
-        res.json({ redirectUrl });
+        res.json({
+            success: true,
+            user: {
+                id: user._id,
+                email: user.email,
+                role: user.role,
+                firstName: user.profile.firstName,
+                lastName: user.profile.lastName
+            },
+            redirectUrl
+        });
+
     } catch (error) {
         console.error('Login error:', error);
-        res.status(500).json({ error: 'Login failed' });
+        res.status(500).json({ 
+            error: 'Login failed', 
+            message: error.message 
+        });
     }
 });
 
