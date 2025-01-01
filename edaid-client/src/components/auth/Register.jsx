@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AuthProvider } from '../../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import {
     Container,
     Paper,
@@ -24,7 +24,7 @@ const Register = () => {
     });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const { register } = AuthProvider();
+    const { register } = useAuth();
     const navigate = useNavigate();
 
     const handleChange = (e) => {
@@ -49,7 +49,11 @@ const Register = () => {
             // Additional user data will be sent to your backend
             navigate('/login');
         } catch (error) {
-            setError('Failed to create account: ' + error.message);
+            if (error.code === 'auth/email-already-in-use') {
+                setError('An account with this email already exists. Please try logging in instead.');
+            } else {
+                setError('Failed to create account: ' + error.message);
+            }
         } finally {
             setLoading(false);
         }

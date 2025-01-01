@@ -2,6 +2,8 @@ import { createContext, useState, useEffect, useContext } from 'react';
 import { 
     onAuthStateChanged, 
     signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    sendPasswordResetEmail,
     sendEmailVerification as firebaseSendEmailVerification,
     setPersistence,
     browserLocalPersistence
@@ -56,12 +58,34 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const register = async (email, password) => {
+        try {
+            const result = await createUserWithEmailAndPassword(auth, email, password);
+            await sendEmailVerification();
+            return result;
+        } catch (error) {
+            console.log('Firebase error code:', error.code);
+            console.log('Firebase error message:', error.message);
+            throw error;
+        }
+    };
+
+    const resetPassword = async (email) => {
+        try {
+            await sendPasswordResetEmail(auth, email);
+        } catch (error) {
+            throw error;
+        }
+    };
+
     return (
         <AuthContext.Provider value={{
             user,
             loading,
             error,
             login,
+            register,
+            resetPassword,
             sendEmailVerification,
             setError
         }}>

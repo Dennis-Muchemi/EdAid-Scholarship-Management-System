@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AuthProvider } from '../../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import {
     Container,
     Paper,
@@ -16,7 +16,7 @@ const ForgotPassword = () => {
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(false);
-    const { resetPassword } = AuthProvider();
+    const { resetPassword } = useAuth();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
