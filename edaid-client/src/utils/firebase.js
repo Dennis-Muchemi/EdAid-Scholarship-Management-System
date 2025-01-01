@@ -1,4 +1,3 @@
-// src/utils/firebase.js
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 
@@ -19,7 +18,7 @@ const auth = getAuth(app);
 auth.config = {
     ...auth.config,
     actionCodeSettings: {
-        url: `${process.env.REACT_APP_URL}/__/auth/action`,  // Your app's URL
+        url: `${process.env.REACT_APP_URL}/verify-email`,
         handleCodeInApp: true
     }
 };

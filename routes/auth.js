@@ -1,4 +1,3 @@
-// Backend auth.js routes
 const express = require('express');
 const router = express.Router();
 const admin = require('firebase-admin');
@@ -10,77 +9,47 @@ const verifyFirebaseToken = async (req, res, next) => {
     try {
         const token = req.headers.authorization?.split('Bearer ')[1];
         if (!token) {
-            return res.status(401).json({ msg: 'No token, authorization denied' });
+            return res.status(401).json({ message: 'No token, authorization denied' });
         }
         const decodedToken = await admin.auth().verifyIdToken(token);
-        req.user = decodedToken;
+        
+        // Get full user object to check email verification
+        const firebaseUser = await admin.auth().getUser(decodedToken.uid);
+        req.user = { ...decodedToken, emailVerified: firebaseUser.emailVerified };
         next();
     } catch (err) {
-        res.status(401).json({ msg: 'Token is not valid' });
+        console.error('Token verification error:', err);
+        res.status(401).json({ message: 'Token is not valid' });
     }
 };
-
-// Auth Routes
-
-// Render login page
-router.get('/login', (req, res) => {
-    const message = req.query.message;
-    res.render('auth/login', { error: null, message });
-});
-
-// Render register page
-router.get('/register', (req, res) => {
-    res.render('auth/register', { error: null });
-});
-
-// Render forgot password page
-router.get('/forgot-password', (req, res) => {
-    res.render('auth/forgot-password', { error: null, success: null });
-});
 
 // Register endpoint
 router.post('/register', verifyFirebaseToken, async (req, res) => {
     try {
-        const { uid, email } = req.user; // From Firebase token
+        const { uid, email } = req.user;
         const { firstName, lastName, role } = req.body;
 
-        // Check if user already exists in MongoDB
-        let existingUser = await User.findOne({ firebaseUid: uid });
-        if (existingUser) {
+        // Check if user exists
+        let user = await User.findOne({ firebaseUid: uid });
+        if (user) {
             return res.status(409).json({ 
-                error: 'User already exists',
-                message: 'An account with this email already exists'
+                message: 'User already exists'
             });
         }
 
-        // Create new user in MongoDB
-        const user = new User({
+        // Create new user
+        user = new User({
             firebaseUid: uid,
             email,
             profile: {
                 firstName,
                 lastName
             },
-            role: role || 'student', // Default to student if no role specified
-            isVerified: false // Will be updated when email is verified
+            role: role || 'student',
+            isVerified: false
         });
 
         await user.save();
-
-        // Send welcome email
-        try {
-            await sendEmail({
-                to: email,
-                template: 'welcome',
-                data: {
-                    name: firstName,
-                    verificationLink: `${process.env.CLIENT_URL}/verify-email?token=${uid}`
-                }
-            });
-        } catch (emailError) {
-            console.error('Failed to send welcome email:', emailError);
-            // Don't fail registration if email fails
-        }
 
         res.status(201).json({
             success: true,
@@ -95,8 +64,7 @@ router.post('/register', verifyFirebaseToken, async (req, res) => {
     } catch (error) {
         console.error('Registration error:', error);
         res.status(500).json({ 
-            error: 'Registration failed', 
-            message: error.message 
+            message: error.message || 'Registration failed'
         });
     }
 });
@@ -104,40 +72,34 @@ router.post('/register', verifyFirebaseToken, async (req, res) => {
 // Login endpoint
 router.post('/login', verifyFirebaseToken, async (req, res) => {
     try {
-        const { uid } = req.user; // This comes from Firebase token verification
+        const { uid, emailVerified } = req.user;
         
-        // Find user in MongoDB
-        const user = await User.findOne({ firebaseUid: uid });
-        if (!user) {
-            return res.status(404).json({ error: 'User not found in database' });
-        }
-
-        // Check email verification
-        if (!user.isVerified) {
+        // Check Firebase email verification
+        if (!emailVerified) {
             return res.status(403).json({ 
-                error: 'Email not verified',
                 message: 'Please verify your email before logging in'
             });
         }
 
-        // Set session data
-        req.session.user = {
-            id: user._id,
-            role: user.role,
-            email: user.email
-        };
+        // Find user in database
+        const user = await User.findOne({ firebaseUid: uid });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found in database' });
+        }
 
-        // Determine redirect URL based on user role
-        let redirectUrl;
-        switch (user.role) {
-            case 'admin':
-                redirectUrl = '/admin/dashboard';
-                break;
-            case 'reviewer':
-                redirectUrl = '/reviewer/dashboard';
-                break;
-            default:
-                redirectUrl = '/student/dashboard';
+        // Check database verification status
+        if (!user.isVerified) {
+            // If Firebase shows verified but database doesn't, update database
+            user.isVerified = true;
+            await user.save();
+        }
+
+        // Determine redirect URL
+        let redirectUrl = '/student/dashboard';
+        if (user.role === 'admin') {
+            redirectUrl = '/admin/dashboard';
+        } else if (user.role === 'reviewer') {
+            redirectUrl = '/reviewer/dashboard';
         }
 
         res.json({
@@ -155,103 +117,83 @@ router.post('/login', verifyFirebaseToken, async (req, res) => {
     } catch (error) {
         console.error('Login error:', error);
         res.status(500).json({ 
-            error: 'Login failed', 
-            message: error.message 
+            message: error.message || 'Login failed'
         });
     }
 });
 
-// Email verification endpoint
-router.get('/verify-email', async (req, res) => {
+// Email verification confirmation endpoint
+router.post('/verify-email', verifyFirebaseToken, async (req, res) => {
     try {
-        const { oobCode } = req.query;  // Changed from token to oobCode
+        const { uid, emailVerified } = req.user;
         
-        if (!oobCode) {
-            throw new Error('No verification code provided');
+        if (!emailVerified) {
+            return res.status(403).json({ 
+                message: 'Email not verified in Firebase'
+            });
         }
 
-        // Verify the action code
-        const checkActionCode = await admin.auth().checkActionCode(oobCode);
-        
-        if (!checkActionCode) {
-            throw new Error('Invalid action code');
-        }
-
-        // Apply the verification code
-        await admin.auth().applyActionCode(oobCode);
-        
-        // Get the user after verification
-        const user = await admin.auth().getUser(checkActionCode.data.email);
-
-        // Update MongoDB user
-        await User.findOneAndUpdate(
-            { firebaseUid: user.uid },
-            { isVerified: true }
+        // Update user verification status in database
+        const user = await User.findOneAndUpdate(
+            { firebaseUid: uid },
+            { isVerified: true },
+            { new: true }
         );
 
-        res.redirect('/auth/login?message=Email verification successful');
-    } catch (error) {
-        console.error('Verification error:', error);
-        if (error.code === 'auth/invalid-action-code') {
-            res.redirect('/auth/login?message=Verification link expired or invalid');
-        } else {
-            res.redirect('/auth/login?message=Verification failed');
+        if (!user) {
+            return res.status(404).json({ message: 'User not found in database' });
         }
+
+        res.json({
+            success: true,
+            message: 'Email verification confirmed'
+        });
+
+    } catch (error) {
+        console.error('Verification confirmation error:', error);
+        res.status(500).json({ 
+            message: error.message || 'Verification confirmation failed'
+        });
     }
 });
 
-// Social auth endpoint
-router.post('/firebase/social', verifyFirebaseToken, async (req, res) => {
+// Verification status check endpoint
+router.get('/verification-status', verifyFirebaseToken, async (req, res) => {
     try {
-        const { uid, email, name } = req.user;
-
-        let user = await User.findOne({ firebaseUid: uid });
+        const { uid, emailVerified } = req.user;
+        
+        const user = await User.findOne({ firebaseUid: uid });
         if (!user) {
-            // Create new user
-            user = new User({
-                firebaseUid: uid,
-                email,
-                profile: {
-                    firstName: name?.split(' ')[0] || '',
-                    lastName: name?.split(' ')[1] || ''
-                },
-                role: 'student',
-                isVerified: true // Social login users are pre-verified
-            });
-            await user.save();
+            return res.status(404).json({ message: 'User not found in database' });
         }
 
-        // Set session
-        req.session.user = {
-            id: user._id,
-            role: user.role,
-            email: user.email
-        };
+        res.json({
+            success: true,
+            isVerified: emailVerified && user.isVerified
+        });
 
-        // Determine redirect URL
-        const redirectUrl = user.role === 'admin' 
-            ? '/admin/dashboard' 
-            : user.role === 'reviewer'
-                ? '/dashboard/reviewer'
-                : '/dashboard/student';
-
-        res.json({ redirectUrl });
     } catch (error) {
-        console.error('Social auth error:', error);
-        res.status(500).json({ error: 'Authentication failed' });
+        console.error('Verification status check error:', error);
+        res.status(500).json({ 
+            message: error.message || 'Failed to check verification status'
+        });
     }
 });
 
 // Logout endpoint
-router.post('/logout', (req, res) => {
-    req.session.destroy(err => {
-        if (err) {
-            console.error('Logout error:', err);
-            return res.status(500).json({ error: 'Logout failed' });
-        }
-        res.clearCookie('connect.sid');
-        res.json({ message: 'Logged out successfully' });
-    });
+router.post('/logout', async (req, res) => {
+    try {
+        res.clearCookie('session');
+        res.json({ 
+            success: true,
+            message: 'Logged out successfully' 
+        });
+    } catch (error) {
+        console.error('Logout error:', error);
+        res.status(500).json({ 
+            message: error.message || 'Logout failed'
+        });
+    }
 });
 
 module.exports = router;

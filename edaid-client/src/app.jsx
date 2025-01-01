@@ -23,6 +23,30 @@ const theme = createTheme({
    }
 });
 
+const DashboardRedirect = () => {
+    const navigate = useNavigate();
+    const { user } = useAuth();
+
+    useEffect(() => {
+        if (user) {
+            switch (user.role) {
+                case 'admin':
+                    navigate('/admin/dashboard');
+                    break;
+                case 'reviewer':
+                    navigate('/reviewer/dashboard');
+                    break;
+                case 'student':
+                    navigate('/student/dashboard');
+                    break;
+                default:
+                    navigate('/login');
+            }
+        }
+    }, [user, navigate]);
+
+    return null;
+};
 
 const App = () => {
    return (
@@ -36,6 +60,13 @@ const App = () => {
                            <Route path="/register" element={<Register />} />
                            <Route path="/forgot-password" element={<ForgotPassword />} />
                            <Route path="/verify-email" element={<EmailVerification />} />
+
+                           {/* Private Route for Dashboard */}
+                           <Route path="/dashboard" element={
+                                <PrivateRoute>
+                                    <DashboardRedirect />
+                                </PrivateRoute>
+                            } />
 
                            {/* Admin Routes */}
                            <Route path="/admin/*" element={

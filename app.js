@@ -20,8 +20,8 @@ const app = express();
 
 // CORS configuration
 app.use(cors({
-  origin: 'http://localhost:3000',
-  credentials: true
+    origin: 'http://localhost:3000', // Your frontend URL
+    credentials: true,
 }));
 
 // Rate limiting
