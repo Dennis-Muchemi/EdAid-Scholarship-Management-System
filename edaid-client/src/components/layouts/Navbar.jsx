@@ -13,12 +13,12 @@ import {
     Menu as MenuIcon,
     AccountCircle
 } from '@mui/icons-material';
-import { AuthProvider } from '../../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 const Navbar = ({ open, toggleDrawer }) => {
     const [anchorEl, setAnchorEl] = React.useState(null);
-    const { logout } = AuthProvider();
+    const { user, logout } = useAuth();
     const navigate = useNavigate();
 
     const handleMenu = (event) => {

@@ -1,9 +1,9 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { AuthProvider } from '../../context/AuthContext'; // adjust this path
+import { useAuth } from '../../context/AuthContext'; // adjust this path
 
 const PrivateRoute = ({ children, allowedRoles }) => {
-   const { user, loading } = AuthProvider();
+   const { user, loading } = useAuth();
    
    if (loading) return <div>Loading...</div>;
    

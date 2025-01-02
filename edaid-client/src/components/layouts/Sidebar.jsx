@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
     Drawer,
     List,
-    ListItem,
+    ListItemButton,
     ListItemIcon,
     ListItemText,
     Toolbar,
@@ -17,12 +17,12 @@ import {
     Settings,
     Description
 } from '@mui/icons-material';
-import { AuthProvider } from '../../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 
 const Sidebar = ({ open }) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { user } = AuthProvider();
+    const { user } = useAuth();
     
     const drawerWidth = 240;
 
@@ -70,15 +70,14 @@ const Sidebar = ({ open }) => {
             <Divider />
             <List>
                 {getNavItems(user?.role).map((item) => (
-                    <ListItem
-                        button
+                    <ListItemButton
                         key={item.text}
                         onClick={() => navigate(item.path)}
                         selected={location.pathname === item.path}
                     >
                         <ListItemIcon>{item.icon}</ListItemIcon>
                         <ListItemText primary={item.text} />
-                    </ListItem>
+                    </ListItemButton>
                 ))}
             </List>
         </Drawer>
