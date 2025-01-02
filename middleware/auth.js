@@ -1,7 +1,7 @@
 const firebaseAdmin = require('firebase-admin');
 const jwt = require('jsonwebtoken');
 const config = require('config');
-const User = require('../models/user'); // Add this to check against your database
+const User = require('../models/user'); 
 
 // Firebase Authentication
 const firebaseAuth = async (token) => {
